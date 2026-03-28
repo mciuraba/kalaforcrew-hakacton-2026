@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐸 FrogTalk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- EKRAN 1: Welcome - Osoba 3 -->
+  <div id="screen-welcome" class="screen active">
+    <h1>🐸 FrogTalk</h1>
+    <p>A pixelated frog pond experience</p>
+    <button onclick="UI.showServerSelect()">Enter the Pond</button>
+  </div>
+
+  <!-- EKRAN 2: Server Select - Osoba 3 -->
+  <div id="screen-server" class="screen">
+    <h2>Choose Server</h2>
+    <div class="server-card" onclick="UI.showCharacterSelect()">
+      <span>🌿 Frog Pond #1</span>
+      <span id="player-count">? / 10</span>
+    </div>
+  </div>
+
+  <!-- EKRAN 3: Character Select - Osoba 3 -->
+  <div id="screen-character" class="screen">
+    <h2>Choose Your Frog</h2>
+    <div id="frog-picker"></div>
+    <input id="frog-name" type="text" placeholder="Enter frog name..." maxlength="12">
+    <button onclick="UI.startGame()">Ribbit! 🐸</button>
+  </div>
+
+  <!-- EKRAN 4: Game - Osoba 2 -->
+  <div id="screen-game" class="screen">
+    <canvas id="gameCanvas" width="640" height="640"></canvas>
+    <div id="chat-ui">
+      <input id="chat-input" type="text" placeholder="Ribbit..." maxlength="50">
+      <button onclick="FB.sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <!-- Nasze pliki - KOLEJNOŚĆ WAŻNA -->
+  <script src="config.js"></script>
+  <script src="firebase.js"></script>
+  <script src="game.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
