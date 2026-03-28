@@ -1,6 +1,7 @@
 // game.js
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
 // ============================================================
 // CONFIG
@@ -14,6 +15,7 @@ const TILE_SIZE = 40; // mniejszy tile żeby więcej było widać
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  ctx.imageSmoothingEnabled = false;
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
@@ -84,7 +86,6 @@ function draw() {
 
   if (!myId) drawFrog(player, true, true, camX, camY);
 }
-
 function drawFrog(frog, isMe, nearby, camX, camY) {
   if (!board) return;
   const ts = board.tileSize;
@@ -93,31 +94,39 @@ function drawFrog(frog, isMe, nearby, camX, camY) {
   const cx = px + ts / 2;
   const cy = py + ts / 2;
 
+  // Podświetlenie własnej żaby
   if (isMe) {
-    ctx.fillStyle = 'rgba(255,255,100,0.25)';
-    ctx.fillRect(px, py, ts, ts);
+    ctx.fillStyle = 'rgba(255,255,100,0.35)';
+    ctx.fillRect(px - 4, py - 4, ts + 8, ts + 8);
   }
 
   // Cień
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
-  ctx.ellipse(cx, cy + ts / 3, ts / 3, ts / 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy + ts * 0.38, ts * 0.32, ts * 0.12, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Żaba
-  ctx.font = `bold ${Math.floor(ts * 0.6)}px Arial`;
+  // Żaba — większa (ts * 0.85 zamiast 0.6)
+  ctx.font = `${Math.floor(ts * 0.85)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('🐸', cx, cy);
 
-  // Imię — zawsze widoczne
-  ctx.fillStyle = isMe ? '#FFD700' : '#ffffff';
-  ctx.font = `bold ${Math.floor(ts * 0.18)}px monospace`;
+  // Imię — czarny outline żeby było widać na każdym tle
+  const nameSize = Math.max(11, Math.floor(ts * 0.22));
+  ctx.font = `bold ${nameSize}px monospace`;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(frog.name || 'Frog', cx, py + 4);
+  ctx.textBaseline = 'bottom';
 
-  // Chat bubble — TYLKO gdy w zasięgu proximity
+  // Outline
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.strokeText(frog.name || 'Frog', cx, py - 2);
+  // Fill
+  ctx.fillStyle = isMe ? '#FFD700' : '#ffffff';
+  ctx.fillText(frog.name || 'Frog', cx, py - 2);
+
+  // Chat bubble
   const msgAge = Date.now() - (frog.messageTime || 0);
   if (nearby && frog.message && msgAge < 4000) {
     drawBubble(cx, py, frog.message, ts);
@@ -125,22 +134,62 @@ function drawFrog(frog, isMe, nearby, camX, camY) {
 }
 
 function drawBubble(x, y, text, ts) {
-  const padding = 6;
-  ctx.font = `bold ${Math.floor(ts * 0.16)}px monospace`;
-  const w = ctx.measureText(text).width + padding * 2;
-  const h = 18;
-  const bx = x - w / 2;
-  const by = y - h - 4;
+  const fontSize = Math.max(13, Math.floor(ts * 0.28)); // dużo większy font
+  ctx.font = `bold ${fontSize}px monospace`;
 
-  ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillRect(bx, by, w, h);
+  const padding = 10;
+  const w = ctx.measureText(text).width + padding * 2;
+  const h = fontSize + 14;
+  const bx = x - w / 2;
+  const by = y - h - 36; // wyżej nad żabą
+
+  // Tło z zaokrąglonymi rogami
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  roundRect(ctx, bx, by, w, h, 6);
+  ctx.fill();
+
+  // Zielona ramka
   ctx.strokeStyle = '#00ff88';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(bx, by, w, h);
-  ctx.fillStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  roundRect(ctx, bx, by, w, h, 6);
+  ctx.stroke();
+
+  // Trójkąt wskazujący na żabę
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(x - 6, by + h);
+  ctx.lineTo(x + 6, by + h);
+  ctx.lineTo(x, by + h + 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - 6, by + h);
+  ctx.lineTo(x, by + h + 8);
+  ctx.lineTo(x + 6, by + h);
+  ctx.stroke();
+
+  // Tekst
+  ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(text, x, by + 3);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, by + h / 2);
+}
+
+// Helper do zaokrąglonych prostokątów
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 function gameLoop() {
