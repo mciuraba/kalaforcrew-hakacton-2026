@@ -87,7 +87,7 @@ function initializePage() {
         playerData.frogName = storedFrogName;
 
         nicknameInput.value = storedNickname;
-        nicknameInput.disabled = true;
+        // nicknameInput.disabled = true;
 
         // Podświetl wybraną żabkę
         frogButtons.forEach(button => {
@@ -167,7 +167,7 @@ function updateInfoSection() {
         document.getElementById('playerID').textContent = playerData.playerID;
         
         infoSection.style.display = 'block';
-        nicknameInput.disabled = true;
+        // nicknameInput.disabled = true;
 
         // Animacja pojawiania się
         infoSection.style.animation = 'slideIn 0.5s ease-out';

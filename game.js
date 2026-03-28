@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d');
 // ============================================================
 // CONFIG
 // ============================================================
-const PROXIMITY_RANGE = 3; // ile tilów od gracza żeby widzieć wiadomości
+const PROXIMITY_RANGE = 2; // ile tilów od gracza żeby widzieć wiadomości
 // ============================================================
 
 function resizeCanvas() {
@@ -154,6 +154,11 @@ window.onload = async () => {
   board.tileSize = Math.min(canvas.width, canvas.height) / board.gridSize;
 };
 
+window.addEventListener('beforeunload', () => {
+    localStorage.removeItem('frogPlayer');
+});
+
 gameLoop();
 
 const GAME = { renderFrogs };
+
