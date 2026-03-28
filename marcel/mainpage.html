@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wybierz swoją żabkę</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .nickname-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nickname-section input {
+            padding: 12px 20px;
+            font-size: 1em;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 250px;
+            transition: border-color 0.3s;
+        }
+
+        .nickname-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .frog-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .frog-card {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+        }
+
+        .frog-card:hover {
+            transform: translateY(-10px);
+            background: #e8e8e8;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .frog-card.selected {
+            border-color: #667eea;
+            background: #e8f0ff;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .frog-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 15px;
+        }
+
+        .frog-preview {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .frog-card-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.95em;
+            margin-bottom: 5px;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .frog-card.selected .checkmark {
+            opacity: 1;
+        }
+
+        .button-section {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-width: 150px;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: #ddd;
+            color: #333;
+            min-width: 150px;
+        }
+
+        .btn-reset:hover {
+            background: #ccc;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .frog-gallery {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .nickname-section input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐸 Wybierz swoją żabkę!</h1>
+        <p class="subtitle">Który przyjaciel Ci się podoba?</p>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage">✓ Dane zapisane! Przygotowujesz się do gry...</div>
+
+        <div class="nickname-section">
+            <input 
+                type="text" 
+                id="nicknameInput" 
+                placeholder="Wpisz swój nickname..."
+                maxlength="20"
+            >
+        </div>
+
+        <div class="frog-card" id="frogCardTemplate" style="display: none;">
+            <div class="checkmark">✓</div>
+            <div class="frog-preview" id="frogPreview"></div>
+            <div class="frog-card-name" id="frogName"></div>
+        </div>
+
+        <div class="frog-gallery" id="frogGallery"></div>
+
+        <div class="button-section">
+            <button class="btn-start" id="startBtn" disabled>Zacznij grę!</button>
+            <button class="btn-reset" id="resetBtn">Wyczyść</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script src="mainpage.js"></script>
+</body>
+</html>
