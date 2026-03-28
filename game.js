@@ -5,7 +5,10 @@ const ctx = canvas.getContext('2d');
 // ============================================================
 // CONFIG
 // ============================================================
-const PROXIMITY_RANGE = 2; // ile tilów od gracza żeby widzieć wiadomości
+// Na górze game.js zmień CONFIG
+const PROXIMITY_RANGE = 3;
+const GRID_SIZE = 30;
+const TILE_SIZE = 40; // mniejszy tile żeby więcej było widać
 // ============================================================
 
 function resizeCanvas() {
@@ -60,28 +63,33 @@ function isNearby(frogA, frogB) {
 }
 
 function draw() {
-  ctx.fillStyle = '#87ceeb';
+  ctx.fillStyle = '#1a2e1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (!board) return;
 
-  board.draw(ctx, 0, 0, Date.now() / 1000);
+  const ts = board.tileSize;
+  // Kamera centrowana na graczu
+  const camX = Math.floor(canvas.width/2  - player.x * ts - ts/2);
+  const camY = Math.floor(canvas.height/2 - player.y * ts - ts/2);
+
+  board.draw(ctx, camX, camY, Date.now() / 1000);
 
   Object.entries(allFrogs).forEach(([id, frog]) => {
     const isMe = id === myId;
-    // Znajdź moje dane z allFrogs (nie lokalny player) żeby mieć aktualną pozycję
     const myFrog = allFrogs[myId] || player;
     const nearby = isMe || isNearby(myFrog, frog);
-    drawFrog(frog, isMe, nearby);
+    drawFrog(frog, isMe, nearby, camX, camY);
   });
 
-  if (!myId) drawFrog(player, true, true);
+  if (!myId) drawFrog(player, true, true, camX, camY);
 }
 
-function drawFrog(frog, isMe, nearby) {
+function drawFrog(frog, isMe, nearby, camX, camY) {
   if (!board) return;
   const ts = board.tileSize;
-  const { px, py } = board.gridToPixel(frog.x, frog.y, 0, 0);
+  const px = camX + frog.x * ts;
+  const py = camY + frog.y * ts;
   const cx = px + ts / 2;
   const cy = py + ts / 2;
 
@@ -146,12 +154,14 @@ window.onload = async () => {
 
   player.name = playerInfo.name;
   player.spriteIndex = playerInfo.spriteIndex;
+  // Spawn w rogu gdzie jest trawa, nie w środku stawu
+  player.x = 2;
+  player.y = 2;
 
   const { id, seed } = await FB.join(player.name, player.spriteIndex);
   myId = id;
 
-  board = new Board(10, Math.min(canvas.width, canvas.height) / 10, seed);
-  board.tileSize = Math.min(canvas.width, canvas.height) / board.gridSize;
+  board = new Board(GRID_SIZE, TILE_SIZE, seed);
 };
 
 window.addEventListener('beforeunload', () => {

@@ -1,19 +1,16 @@
-// Generacja i rysowanie planszy — styl top-down z ścianką dirt
 class Board {
-    constructor(gridSize = 10, tileSize = 48, seed = 12345) {
+    constructor(gridSize = 30, tileSize = 48, seed = 12345) {
         this.gridSize = gridSize;
         this.tileSize = tileSize;
-        this.sideDepth = 10; // grubość ścianki dirt widocznej od frontu
-        this.seed = seed; // do generacji
+        this.sideDepth = 10;
+        this.seed = seed;
 
-        // Typy terenu
         this.GRASS = 'grass';
         this.WATER = 'water';
         this.LILY  = 'lily';
         this.PLANT = 'plant';
         this.DIRT  = 'dirt';
 
-        // Kolory topface i ścianek
         this.colors = {
             grass: { top: '#5cb85c', side: '#3d7d38', dark: '#2d5a2d' },
             water: { top: '#4a90e2', side: '#1a3a7f', dark: '#0d1f4d' },
@@ -30,28 +27,67 @@ class Board {
         return (this.seed >>> 0) / 0xffffffff;
     }
 
+    // Prosty noise — sumuje kilka sinusów żeby dać organiczny kształt
+    _noise(x, y) {
+        return (
+            Math.sin(x * 0.4 + this._rand() * 0.1) +
+            Math.sin(y * 0.35 + this._rand() * 0.1) +
+            Math.sin((x + y) * 0.25 + this._rand() * 0.1)
+        ) / 3;
+    }
+
     generateTerrain() {
+        const G = this.gridSize;
+
+        // Pre-generuj noise dla całej mapy
+        const noise = [];
+        for (let y = 0; y < G; y++) {
+            noise.push([]);
+            for (let x = 0; x < G; x++) {
+                // Organiczny kształt stawu w środku
+                const cx = (x - G/2) / (G/2);
+                const cy = (y - G/2) / (G/2);
+                const dist = Math.sqrt(cx*cx + cy*cy);
+                const wobble = Math.sin(x * 0.7) * 0.15 + Math.cos(y * 0.8) * 0.15 + this._rand() * 0.2;
+                noise[y].push(dist + wobble);
+            }
+        }
+
         const tiles = [];
-        for (let y = 0; y < this.gridSize; y++) {
+        for (let y = 0; y < G; y++) {
             const row = [];
-            for (let x = 0; x < this.gridSize; x++) {
-                let type = this.GRASS;
-                const distFromEdge = Math.min(x, y, this.gridSize-1-x, this.gridSize-1-y);
+            for (let x = 0; x < G; x++) {
+                const distFromEdge = Math.min(x, y, G-1-x, G-1-y);
+                const n = noise[y][x];
+                let type;
 
                 if (distFromEdge === 0) {
                     type = this.DIRT;
                 } else if (distFromEdge === 1) {
-                    const r = this._rand();  // ← zamiast Math.random()
-                    if      (r < 0.65) type = this.WATER;
-                    else if (r < 0.80) type = this.LILY;
-                    else               type = this.GRASS;
-                } else if (distFromEdge <= 3) {
+                    // Brzeg — głównie woda z liliami
                     const r = this._rand();
-                    if      (r < 0.25) type = this.WATER;
-                    else if (r < 0.32) type = this.LILY;
+                    if      (r < 0.6) type = this.WATER;
+                    else if (r < 0.75) type = this.LILY;
+                    else               type = this.GRASS;
+                } else if (n > 0.55) {
+                    // Daleko od środka = trawa/rośliny
+                    type = this._rand() < 0.18 ? this.PLANT : this.GRASS;
+                } else if (n > 0.3) {
+                    // Strefa przejściowa — mieszana
+                    const r = this._rand();
+                    if      (r < 0.3)  type = this.WATER;
+                    else if (r < 0.42) type = this.LILY;
+                    else if (r < 0.55) type = this.PLANT;
+                    else               type = this.GRASS;
+                } else if (n > 0.0) {
+                    // Wewnętrzna strefa stawu
+                    const r = this._rand();
+                    if      (r < 0.65) type = this.WATER;
+                    else if (r < 0.82) type = this.LILY;
                     else               type = this.GRASS;
                 } else {
-                    type = this._rand() < 0.12 ? this.PLANT : this.GRASS;
+                    // Centrum stawu — prawie same woda
+                    type = this._rand() < 0.9 ? this.WATER : this.LILY;
                 }
 
                 row.push({ type });
@@ -61,14 +97,12 @@ class Board {
         return tiles;
     }
 
-    // Czy żabka może wejść na ten kafelek
     canWalk(x, y) {
         if (x < 0 || y < 0 || x >= this.gridSize || y >= this.gridSize) return false;
         const t = this.tiles[y][x].type;
         return t === this.GRASS || t === this.PLANT;
     }
 
-    // Konwersja współrzędnych gridu na piksele ekranu
     gridToPixel(x, y, offsetX, offsetY) {
         return {
             px: offsetX + x * this.tileSize,
@@ -76,12 +110,7 @@ class Board {
         };
     }
 
-    // Rysowanie całej planszy
-    // offsetX, offsetY — lewy górny róg planszy
-    // time             — Date.now()/1000, potrzebne do animacji wody
-    // frogX, frogY     — pozycja gracza (opcjonalne, możesz rysować żabkę osobno)
     draw(ctx, offsetX = 0, offsetY = 0, time = 0) {
-        // Rysuj od dołu do góry żeby ścianka dolnego rzędu nie przykrywała kafelków
         for (let y = this.gridSize - 1; y >= 0; y--) {
             for (let x = 0; x < this.gridSize; x++) {
                 const tile = this.tiles[y][x];
@@ -97,32 +126,22 @@ class Board {
         const SD = this.sideDepth;
         const c  = this.colors[tile.type] || this.colors.grass;
 
-        // --- Ścianka boczna (tylko dolny rząd) ---
         if (isBottomRow) {
-            // Ciemna podstawa
             ctx.fillStyle = c.dark;
             ctx.fillRect(x, y + TH, TW, SD);
-
-            // Jaśniejszy środkowy pasek dirt
             ctx.fillStyle = c.side;
             ctx.fillRect(x + 1, y + TH + 2, TW - 2, SD - 4);
-
-            // Outline ścianki
             ctx.strokeStyle = 'rgba(0,0,0,0.5)';
             ctx.lineWidth = 1;
             ctx.strokeRect(x, y + TH, TW, SD);
         }
 
-        // --- Topface ---
         ctx.fillStyle = c.top;
         ctx.fillRect(x, y, TW, TH);
-
-        // --- Siatka / outline ---
         ctx.strokeStyle = 'rgba(0,0,0,0.35)';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(x, y, TW, TH);
 
-        // --- Dekoracje per typ ---
         if (tile.type === this.WATER) {
             this._drawWater(ctx, x, y, TW, TH, time);
         } else if (tile.type === this.LILY) {
@@ -158,27 +177,24 @@ class Board {
     _drawLily(ctx, x, y, TW, TH) {
         ctx.save();
         ctx.globalAlpha = 0.9;
-        // Pad (zielone kółko z wycięciem)
         ctx.fillStyle = '#2ecc71';
         ctx.beginPath();
-        ctx.arc(x + TW / 2, y + TH / 2, 14, 0, Math.PI * 2);
+        ctx.arc(x + TW/2, y + TH/2, 14, 0, Math.PI * 2);
         ctx.fill();
-        // Wycięcie klina
         ctx.fillStyle = this.colors.lily.top;
         ctx.beginPath();
-        ctx.moveTo(x + TW / 2, y + TH / 2);
-        ctx.lineTo(x + TW / 2 + 14, y + TH / 2);
-        ctx.arc(x + TW / 2, y + TH / 2, 14, 0, Math.PI * 0.5);
+        ctx.moveTo(x + TW/2, y + TH/2);
+        ctx.lineTo(x + TW/2 + 14, y + TH/2);
+        ctx.arc(x + TW/2, y + TH/2, 14, 0, Math.PI * 0.5);
         ctx.closePath();
         ctx.fill();
-        // Kwiatek
         ctx.fillStyle = '#e74c3c';
         ctx.beginPath();
-        ctx.arc(x + TW / 2 - 2, y + TH / 2 - 2, 5, 0, Math.PI * 2);
+        ctx.arc(x + TW/2 - 2, y + TH/2 - 2, 5, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#f9ca24';
         ctx.beginPath();
-        ctx.arc(x + TW / 2 - 2, y + TH / 2 - 2, 2, 0, Math.PI * 2);
+        ctx.arc(x + TW/2 - 2, y + TH/2 - 2, 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }
@@ -193,14 +209,8 @@ class Board {
             { bx: x + 34, by: y + 10 },
         ];
         for (const { bx, by } of blades) {
-            ctx.beginPath();
-            ctx.moveTo(bx, by);
-            ctx.lineTo(bx - 2, by - 6);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(bx + 4, by + 4);
-            ctx.lineTo(bx + 2, by - 2);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 2, by - 6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(bx + 4, by + 4); ctx.lineTo(bx + 2, by - 2); ctx.stroke();
         }
         ctx.restore();
     }
@@ -208,16 +218,10 @@ class Board {
     _drawPlant(ctx, x, y, TW, TH) {
         ctx.save();
         ctx.fillStyle = '#27ae60';
-        ctx.beginPath();
-        ctx.arc(x + TW / 2, y + TH / 2, 10, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(x + TW/2, y + TH/2, 10, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#2ecc71';
-        ctx.beginPath();
-        ctx.arc(x + TW / 2 - 5, y + TH / 2 - 5, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x + TW / 2 + 5, y + TH / 2 - 3, 6, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(x + TW/2 - 5, y + TH/2 - 5, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + TW/2 + 5, y + TH/2 - 3, 6, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
     }
 
