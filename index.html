@@ -6,6 +6,11 @@
   <title>🐸 FrogTalk</title>
   <link rel="stylesheet" href="style.css">
 </head>
+<script>
+  if (!localStorage.getItem('frogPlayer')) {
+    window.location.href = 'mainpage.html';
+  }
+</script>
 <body>
   <canvas id="gameCanvas"></canvas>
 

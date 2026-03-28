@@ -131,8 +131,17 @@ function initializePage() {
     // Event listener - przycisk "Zacznij grę"
     startGameBtn.addEventListener('click', function() {
         savePlayerData();
-        // Tutaj możesz dodać przekierowanie do gry
-        console.log('Rozpoczynanie gry z danymi:', playerData);
+        
+        // Zapisz do localStorage żeby game.js mógł to odczytać
+        localStorage.setItem('frogPlayer', JSON.stringify({
+            name: playerData.nickname,
+            frogType: playerData.frogType,  // np. "GreenBlue"
+            spriteIndex: ['BlueBlue','BlueBrown','GreenBlue','GreenBrown','PurpleBlue','PurpleWhite']
+                        .indexOf(playerData.frogType)
+        }));
+        
+        // Przekieruj do gry
+        window.location.href = 'index.html';
     });
 }
 

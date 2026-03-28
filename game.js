@@ -132,11 +132,16 @@ function gameLoop() {
 
 // Do testów przypisywanie lokalnego ID
 window.onload = async () => {
-    const { id, seed } = await FB.join("Kermit", 0);
+    // Pobierz dane gracza z mainpage
+    const saved = localStorage.getItem('frogPlayer');
+    const playerInfo = saved ? JSON.parse(saved) : { name: 'Anon Frog', spriteIndex: 0 };
+
+    player.name = playerInfo.name;
+    player.spriteIndex = playerInfo.spriteIndex;
+
+    const { id, seed } = await FB.join(player.name, player.spriteIndex);
     myId = id;
-    player.name = "Kermit";
-    
-    // Stwórz planszę z seedem z Firebase
+
     board = new Board(10, Math.min(canvas.width, canvas.height) / 10, seed);
     board.tileSize = Math.min(canvas.width, canvas.height) / board.gridSize;
 };
