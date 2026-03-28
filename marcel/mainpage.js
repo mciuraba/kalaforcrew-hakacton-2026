@@ -1,236 +1,217 @@
-// Dostępne żabki
-const FROGS = [
-    { id: 'blueblue', name: 'Niebieska-Niebieska', folder: 'BlueBlue', file: 'ToxicFrogBlueBlue_Idle.png' },
-    { id: 'bluebrown', name: 'Niebieska-Brązowa', folder: 'BlueBrown', file: 'ToxicFrogBlueBrown_Idle.png' },
-    { id: 'greenblue', name: 'Zielona-Niebieska', folder: 'GreenBlue', file: 'ToxicFrogGreenBlue_Idle.png' },
-    { id: 'greenbrown', name: 'Zielona-Brązowa', folder: 'GreenBrown', file: 'ToxicFrogGreenBrown_Idle.png' },
-    { id: 'purpleblue', name: 'Fioletowa-Niebieska', folder: 'PurpleBlue', file: 'ToxicFrogPurpleBlue_Idle.png' },
-    { id: 'purplewhite', name: 'Fioletowa-Biała', folder: 'PurpleWhite', file: 'ToxicFrogPurpleWhite_Idle.png' }
-];
+// ============================================================
+// ZARZĄDZANIE CIASTECZKAMI
+// ============================================================
 
-const COOKIE_NAME = 'playerData';
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 dni
-
-let selectedFrogId = null;
-
-// Cookie functions
-function setCookie(name, value, maxAge) {
-    const cookieString = `${name}=${encodeURIComponent(JSON.stringify(value))}; max-age=${maxAge}; path=/`;
-    document.cookie = cookieString;
+/**
+ * Ustaw ciasteczko z określoną wartością i czasem ważności
+ * @param {string} name - Nazwa ciasteczka
+ * @param {string} value - Wartość ciasteczka
+ * @param {number} days - Liczba dni ważności (domyślnie 365)
+ */
+function setCookie(name, value, days = 365) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
 }
 
+/**
+ * Pobierz wartość ciasteczka
+ * @param {string} name - Nazwa ciasteczka
+ * @returns {string|null} Wartość ciasteczka lub null
+ */
 function getCookie(name) {
     const nameEQ = name + "=";
     const cookies = document.cookie.split(';');
-    
     for (let cookie of cookies) {
         cookie = cookie.trim();
         if (cookie.indexOf(nameEQ) === 0) {
-            try {
-                return JSON.parse(decodeURIComponent(cookie.substring(nameEQ.length)));
-            } catch (e) {
-                return null;
-            }
+            return decodeURIComponent(cookie.substring(nameEQ.length));
         }
     }
     return null;
 }
 
-function deleteCookie(name) {
-    document.cookie = `${name}=; max-age=0; path=/`;
-}
+// ============================================================
+// GENEROWANIE UNIKALNEGO ID
+// ============================================================
 
-// Generate unique player ID
-function generatePlayerId() {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 100000);
-    return `PLAYER_${timestamp}_${random}`;
-}
-
-// Create Phaser scene for frog preview
-function createFrogScene(frog) {
-    return {
-        key: `scene_${frog.id}`,
-        preload: function() {
-            const imagePath = `../ToxicFrog/${frog.folder}/${frog.file}`;
-            this.load.spritesheet(frog.id, imagePath, {
-                frameWidth: 48,
-                frameHeight: 48
-            });
-        },
-        create: function() {
-            // Display frame 3 (middle frame from the 7 frames)
-            this.add.image(75, 50, frog.id, 3).setScale(3);
-        }
-    };
-}
-
-// Initialize gallery with Phaser previews
-function initializeGallery() {
-    const gallery = document.getElementById('frogGallery');
-    gallery.innerHTML = '';
-
-    FROGS.forEach(frog => {
-        const card = document.createElement('div');
-        card.className = 'frog-card';
-        card.dataset.frogId = frog.id;
-
-        const previewContainer = document.createElement('div');
-        previewContainer.id = `preview_${frog.id}`;
-        previewContainer.className = 'frog-preview';
-
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'frog-card-name';
-        nameDiv.textContent = frog.name;
-
-        const checkmark = document.createElement('div');
-        checkmark.className = 'checkmark';
-        checkmark.textContent = '✓';
-
-        card.appendChild(checkmark);
-        card.appendChild(previewContainer);
-        card.appendChild(nameDiv);
-
-        gallery.appendChild(card);
-
-        // Create Phaser game for this frog
-        const config = {
-            type: Phaser.AUTO,
-            width: 150,
-            height: 150,
-            parent: `preview_${frog.id}`,
-            scene: createFrogScene(frog),
-            render: {
-                pixelArt: true,
-                antialias: false
-            }
-        };
-
-        new Phaser.Game(config);
-
-        card.addEventListener('click', () => selectFrog(frog.id));
+/**
+ * Wygeneruj unikalny identyfikator użytkownika (UUID v4)
+ * @returns {string} UUID v4
+ */
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
     });
 }
 
-// Select frog
-function selectFrog(frogId) {
-    // Remove previous selection
-    document.querySelectorAll('.frog-card').forEach(card => {
-        card.classList.remove('selected');
-    });
+// ============================================================
+// INICJALIZACJA STRONY
+// ============================================================
 
-    // Add selection to clicked card
-    document.querySelector(`[data-frog-id="${frogId}"]`).classList.add('selected');
-    selectedFrogId = frogId;
+// Zmienna przechowująca wybrane dane
+let playerData = {
+    nickname: null,
+    frogType: null,
+    frogName: null,
+    playerID: null
+};
 
-    // Enable start button if nickname is filled
-    updateButtonState();
-}
-
-// Update button state
-function updateButtonState() {
-    const nickname = document.getElementById('nicknameInput').value.trim();
-    const startBtn = document.getElementById('startBtn');
-    
-    startBtn.disabled = !(nickname.length > 0 && selectedFrogId);
-}
-
-// Handle start button
-function startGame() {
-    const nickname = document.getElementById('nicknameInput').value.trim();
-    const errorMessage = document.getElementById('errorMessage');
-    
-    // Validation
-    if (!nickname) {
-        errorMessage.textContent = 'Proszę wpisać nickname!';
-        return;
-    }
-
-    if (!selectedFrogId) {
-        errorMessage.textContent = 'Proszę wybrać żabkę!';
-        return;
-    }
-
-    if (nickname.length > 20) {
-        errorMessage.textContent = 'Nickname nie może być dłuższy niż 20 znaków!';
-        return;
-    }
-
-    // Generate ID
-    const playerId = generatePlayerId();
-
-    // Find selected frog
-    const selectedFrog = FROGS.find(f => f.id === selectedFrogId);
-
-    // Create player data
-    const playerData = {
-        playerId: playerId,
-        nickname: nickname,
-        frogId: selectedFrogId,
-        frogName: selectedFrog.name,
-        frogFolder: selectedFrog.folder,
-        createdAt: new Date().toISOString()
-    };
-
-    console.log('Zapisane dane gracza:', playerData);
-
-    // Save to cookie
-    setCookie(COOKIE_NAME, playerData, COOKIE_MAX_AGE);
-
-    // Clear messages
-    errorMessage.textContent = '';
-
-    // Show success message
-    const successMsg = document.getElementById('successMessage');
-    successMsg.style.display = 'block';
-    successMsg.textContent = `✓ Witaj ${nickname}! (ID: ${playerId})`;
-
-    // Simulate game start after delay
-    setTimeout(() => {
-        console.log('Rozpoczynanie gry z danymi:', playerData);
-        // Tutaj możesz dodać kod przechodzący do gry
-        // window.location.href = '../game.html';
-    }, 2000);
-}
-
-// Reset form
-function resetForm() {
-    document.getElementById('nicknameInput').value = '';
-    document.querySelectorAll('.frog-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    selectedFrogId = null;
-    document.getElementById('errorMessage').textContent = '';
-    document.getElementById('successMessage').style.display = 'none';
-    updateButtonState();
-    deleteCookie(COOKIE_NAME);
-    console.log('Formularz wyczyszczony, ciasteczko usunięte');
-}
-
-// Load saved data
-function loadSavedData() {
-    const saved = getCookie(COOKIE_NAME);
-    
-    if (saved) {
-        console.log('Znaleziono zapisane dane:', saved);
-        document.getElementById('nicknameInput').value = saved.nickname;
-        selectFrog(saved.frogId);
-    }
-}
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    initializeGallery();
-    loadSavedData();
-
-    document.getElementById('nicknameInput').addEventListener('input', updateButtonState);
-    document.getElementById('startBtn').addEventListener('click', startGame);
-    document.getElementById('resetBtn').addEventListener('click', resetForm);
-
-    // Allow Enter key to start game
-    document.getElementById('nicknameInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !document.getElementById('startBtn').disabled) {
-            startGame();
-        }
-    });
+// Inicjalizuj stronę
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
 });
+
+function initializePage() {
+    // Pobranie elementów DOM
+    const nicknameInput = document.getElementById('nicknameInput');
+    const nicknameForm = document.getElementById('nicknameForm');
+    const frogButtons = document.querySelectorAll('.frog-button');
+    const infoSection = document.getElementById('infoSection');
+    const startGameBtn = document.getElementById('startGameBtn');
+
+    // Sprawdzenie czy użytkownik już ma zapisane dane w ciasteczku
+    const storedPlayerID = getCookie('playerID');
+    const storedNickname = getCookie('nickname');
+    const storedFrogType = getCookie('frogType');
+    const storedFrogName = getCookie('frogName');
+
+    if (storedPlayerID && storedNickname && storedFrogType) {
+        // Użytkownik już istnieje - załaduj jego dane
+        playerData.playerID = storedPlayerID;
+        playerData.nickname = storedNickname;
+        playerData.frogType = storedFrogType;
+        playerData.frogName = storedFrogName;
+
+        nicknameInput.value = storedNickname;
+        nicknameInput.disabled = true;
+
+        // Podświetl wybraną żabkę
+        frogButtons.forEach(button => {
+            if (button.dataset.frogType === storedFrogType) {
+                button.classList.add('selected');
+            }
+        });
+
+        // Pokaż sekcję informacyjną
+        updateInfoSection();
+    } else {
+        // Nowy użytkownik - wygeneruj ID
+        playerData.playerID = generateUUID();
+    }
+
+    // Event listener - zmiana nicku
+    nicknameInput.addEventListener('change', function() {
+        if (this.value.trim()) {
+            playerData.nickname = this.value.trim();
+            checkAllDataComplete();
+        }
+    });
+
+    // Event listener - klik na żabkę
+    frogButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Usuń zaznaczenie ze wszystkich przycisków
+            frogButtons.forEach(btn => btn.classList.remove('selected'));
+            
+            // Dodaj zaznaczenie do klikniętego przycisku
+            this.classList.add('selected');
+
+            // Zapisz dane wyboru
+            playerData.frogType = this.dataset.frogType;
+            playerData.frogName = this.dataset.frogName;
+
+            checkAllDataComplete();
+        });
+    });
+
+    // Event listener - przycisk "Zacznij grę"
+    startGameBtn.addEventListener('click', function() {
+        savePlayerData();
+        // Tutaj możesz dodać przekierowanie do gry
+        console.log('Rozpoczynanie gry z danymi:', playerData);
+    });
+}
+
+/**
+ * Sprawdź czy wszystkie dane są kompletne i pokaż sekcję informacyjną
+ */
+function checkAllDataComplete() {
+    if (playerData.nickname && playerData.frogType && playerData.playerID) {
+        updateInfoSection();
+    }
+}
+
+/**
+ * Zaktualizuj sekcję z informacjami o graczu
+ */
+function updateInfoSection() {
+    const infoSection = document.getElementById('infoSection');
+    const nicknameInput = document.getElementById('nicknameInput');
+
+    if (playerData.nickname && playerData.frogType) {
+        document.getElementById('selectedNickname').textContent = playerData.nickname;
+        document.getElementById('selectedFrog').textContent = playerData.frogName;
+        document.getElementById('playerID').textContent = playerData.playerID;
+        
+        infoSection.style.display = 'block';
+        nicknameInput.disabled = true;
+
+        // Animacja pojawiania się
+        infoSection.style.animation = 'slideIn 0.5s ease-out';
+    }
+}
+
+/**
+ * Zapisz dane gracza w ciasteczku
+ */
+function savePlayerData() {
+    if (playerData.nickname && playerData.frogType && playerData.playerID) {
+        // Zapisz każdą część danych w osobnym ciasteczku
+        setCookie('playerID', playerData.playerID, 365);
+        setCookie('nickname', playerData.nickname, 365);
+        setCookie('frogType', playerData.frogType, 365);
+        setCookie('frogName', playerData.frogName, 365);
+
+        // Alternatywnie - zapisz wszystkie dane w jednym JSON ciasteczku
+        const playerDataJSON = JSON.stringify({
+            playerID: playerData.playerID,
+            nickname: playerData.nickname,
+            frogType: playerData.frogType,
+            frogName: playerData.frogName,
+            timestamp: new Date().toISOString()
+        });
+        setCookie('playerData', playerDataJSON, 365);
+
+        console.log('✅ Dane gracza zapisane w ciasteczku');
+        console.log('📊 Dane gracza:', playerData);
+    } else {
+        console.error('❌ Nie wszystkie dane są wypełnione');
+    }
+}
+
+/**
+ * Funkcja debugowania - wyświetl wszystkie ciasteczka
+ */
+function debugCookies() {
+    console.log('🍪 CIASTECZKA:');
+    const cookies = document.cookie.split(';');
+    cookies.forEach(cookie => {
+        console.log(cookie.trim());
+    });
+}
+
+/**
+ * Wyczyść wszystkie ciasteczka (do testowania)
+ */
+function clearAllCookies() {
+    document.cookie.split(';').forEach(function(c) {
+        document.cookie = c.replace(/^ +/, '')
+            .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+    });
+    console.log('🗑️ Ciasteczka wyczyszczone');
+    location.reload();
+}
