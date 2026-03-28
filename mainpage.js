@@ -69,7 +69,7 @@ function initializePage() {
     // Pobranie elementów DOM
     const nicknameInput = document.getElementById('nicknameInput');
     const nicknameForm = document.getElementById('nicknameForm');
-    const frogButtons = document.querySelectorAll('.frog-button');
+    const frogButtons = document.querySelectorAll('.frog-card');
     const infoSection = document.getElementById('infoSection');
     const startGameBtn = document.getElementById('startGameBtn');
 
@@ -159,18 +159,14 @@ function checkAllDataComplete() {
  */
 function updateInfoSection() {
     const infoSection = document.getElementById('infoSection');
-    const nicknameInput = document.getElementById('nicknameInput');
 
     if (playerData.nickname && playerData.frogType) {
         document.getElementById('selectedNickname').textContent = playerData.nickname;
         document.getElementById('selectedFrog').textContent = playerData.frogName;
         document.getElementById('playerID').textContent = playerData.playerID;
         
-        infoSection.style.display = 'block';
-        // nicknameInput.disabled = true;
-
-        // Animacja pojawiania się
-        infoSection.style.animation = 'slideIn 0.5s ease-out';
+        infoSection.style.display = 'block';  // ← zostaw to
+        infoSection.classList.add('visible'); // ← dodaj to dla animacji
     }
 }
 

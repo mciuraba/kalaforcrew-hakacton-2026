@@ -3,80 +3,528 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toxic Frog Game - Ekran Główny</title>
-    <link rel="stylesheet" href="mainpage_styles.css">
+    <title>🐸 TOXIC FROG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #0d1117;
+            --panel:     #161b22;
+            --border:    #30a46c;
+            --border2:   #1a7a45;
+            --accent:    #39d98a;
+            --accent2:   #f0c040;
+            --text:      #e6edf3;
+            --muted:     #8b949e;
+            --danger:    #f85149;
+            --purple:    #a371f7;
+            --pixel:     2px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='0' y='0' width='8' height='8' fill='%2339d98a'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%2339d98a'/%3E%3C/svg%3E") 4 4, auto;
+        }
+
+        /* ── SCANLINES OVERLAY ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* ── PIXEL GRID BG ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(48,164,108,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(48,164,108,0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── FLOATING PIXELS ── */
+        .pixel-rain {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        .pixel-rain span {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            opacity: 0;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0%   { opacity: 0; transform: translateY(-10px); }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(100vh); }
+        }
+
+        /* ── LAYOUT ── */
+        .wrapper {
+            position: relative;
+            z-index: 10;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            display: inline-block;
+            font-size: clamp(18px, 4vw, 28px);
+            color: var(--accent);
+            text-shadow:
+                4px 4px 0 var(--border2),
+                8px 8px 0 rgba(57,217,138,0.15);
+            letter-spacing: 2px;
+            animation: flicker 4s infinite;
+            line-height: 1.4;
+        }
+        .logo span { color: var(--accent2); }
+
+        @keyframes flicker {
+            0%,96%,100% { opacity: 1; }
+            97%          { opacity: 0.7; }
+            98%          { opacity: 1; }
+            99%          { opacity: 0.5; }
+        }
+
+        .tagline {
+            margin-top: 14px;
+            font-size: 7px;
+            color: var(--muted);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ── PIXEL DIVIDER ── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 32px 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 8px);
+        }
+        .divider-icon { color: var(--accent); font-size: 10px; white-space: nowrap; }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--panel);
+            border: 2px solid var(--border2);
+            box-shadow:
+                4px 4px 0 var(--border2),
+                inset 0 0 40px rgba(57,217,138,0.03);
+            padding: 28px;
+            margin-bottom: 24px;
+            image-rendering: pixelated;
+        }
+        .panel-title {
+            font-size: 9px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .panel-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border2);
+        }
+
+        /* ── NICK INPUT ── */
+        .nick-row {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .nick-label {
+            font-size: 7px;
+            color: var(--muted);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nick-label::before { content: '>'; color: var(--accent); }
+
+        #nicknameInput {
+            flex: 1;
+            background: var(--bg);
+            border: 2px solid var(--border2);
+            color: var(--accent);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            padding: 12px 16px;
+            outline: none;
+            transition: border-color 0.1s, box-shadow 0.1s;
+            caret-color: var(--accent);
+        }
+        #nicknameInput::placeholder { color: #2d3b2d; }
+        #nicknameInput:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(57,217,138,0.2), 4px 4px 0 var(--border2);
+        }
+
+        /* ── FROG GRID ── */
+        .frog-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .frog-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .frog-card {
+            background: var(--bg);
+            border: 2px solid var(--border2);
+            padding: 16px 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            transition: none;
+            position: relative;
+            user-select: none;
+        }
+        .frog-card::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 100%;
+            height: 100%;
+            background: var(--border2);
+            z-index: -1;
+            transition: none;
+        }
+        .frog-card:hover {
+            border-color: var(--accent);
+            transform: translate(-2px, -2px);
+        }
+        .frog-card:hover::after {
+            background: var(--accent);
+        }
+        .frog-card:active {
+            transform: translate(0, 0);
+        }
+        .frog-card.selected {
+            border-color: var(--accent2);
+            background: rgba(240,192,64,0.06);
+            transform: translate(-2px, -2px);
+        }
+        .frog-card.selected::after { background: var(--accent2); }
+        .frog-card.selected .frog-label { color: var(--accent2); }
+
+        .frog-card.selected::before {
+            content: '★';
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 10px;
+            color: var(--accent2);
+        }
+
+        /* ── FROG IMAGE — pixel-perfect ── */
+        .frog-img-wrap {
+            width: 80px;
+            height: 80px;
+            image-rendering: pixelated;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .frog-img-wrap img {
+            width: 80px;
+            height: 80px;
+            image-rendering: pixelated;
+            object-fit: contain;
+        }
+        /* Shimmer za żabą gdy hover */
+        .frog-card:hover .frog-img-wrap::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            background: radial-gradient(circle, rgba(57,217,138,0.15) 0%, transparent 70%);
+        }
+
+        .frog-label {
+            font-size: 7px;
+            color: var(--muted);
+            text-align: center;
+            letter-spacing: 1px;
+            line-height: 1.6;
+        }
+
+        /* ── PROFILE PANEL ── */
+        .profile-panel {
+            display: none;
+            background: var(--panel);
+            border: 2px solid var(--accent2);
+            box-shadow: 4px 4px 0 rgba(240,192,64,0.4);
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            animation: slideUp 0.15s steps(3) forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .profile-panel.visible { display: block; }
+
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 7px;
+        }
+        .profile-row:last-child { margin-bottom: 0; }
+        .profile-key {
+            color: var(--muted);
+            min-width: 100px;
+        }
+        .profile-val { color: var(--accent); }
+        .profile-val.gold { color: var(--accent2); }
+
+        .profile-id {
+            font-size: 6px;
+            color: #3d4d3d;
+            word-break: break-all;
+        }
+
+        /* ── START BUTTON ── */
+        .start-btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            padding: 16px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            position: relative;
+            transition: none;
+            box-shadow: 4px 4px 0 var(--border2);
+        }
+        .start-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 100%;
+            height: 100%;
+            background: var(--border2);
+            z-index: -1;
+        }
+        .start-btn:hover {
+            background: var(--accent2);
+            box-shadow: 4px 4px 0 #8a6a00;
+            transform: translate(-2px, -2px);
+        }
+        .start-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+        .start-btn:disabled {
+            background: #2d3b2d;
+            color: #3d4d3d;
+            cursor: not-allowed;
+            box-shadow: 2px 2px 0 #1a2a1a;
+            transform: none;
+        }
+
+        /* ── CORNER DECORATIONS ── */
+        .corner-tl, .corner-tr, .corner-bl, .corner-br {
+            position: fixed;
+            width: 32px;
+            height: 32px;
+            border-color: var(--border2);
+            border-style: solid;
+            opacity: 0.4;
+        }
+        .corner-tl { top: 16px; left: 16px;  border-width: 2px 0 0 2px; }
+        .corner-tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+        .corner-bl { bottom: 16px; left: 16px;  border-width: 0 0 2px 2px; }
+        .corner-br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+        /* ── VERSION TAG ── */
+        .version {
+            position: fixed;
+            bottom: 12px;
+            right: 20px;
+            font-size: 6px;
+            color: #2d3b2d;
+            letter-spacing: 2px;
+            z-index: 20;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Sekcja powitania i wpisania nicku -->
-        <div class="welcome-section">
-            <h1>🐸 Witaj w Toxic Frog Game! 🐸</h1>
-            <form id="nicknameForm" class="nickname-form">
-                <label for="nicknameInput">Podaj swój nickname:</label>
-                <input 
-                    type="text" 
-                    id="nicknameInput" 
-                    name="nickname" 
-                    placeholder="Wpisz swój nick..."
-                    maxlength="20"
-                    required
-                >
-                <p class="info-text">Wybierz swoją żabkę poniżej</p>
-            </form>
-        </div>
 
-        <!-- Sekcja galerii żabek -->
-        <div class="frog-gallery">
-            <h2>Wybierz swoją żabkę</h2>
-            <div class="gallery-grid">
-                <!-- BlueBlue -->
-                <button class="frog-button" data-frog-type="BlueBlue" data-frog-name="Blue & Blue">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/BlueBlue/ToxicFrogBlueBlue_Idle.png')"></div>
-                    <span class="frog-name">Blue & Blue</span>
-                </button>
+<!-- Corner decorations -->
+<div class="corner-tl"></div>
+<div class="corner-tr"></div>
+<div class="corner-bl"></div>
+<div class="corner-br"></div>
+<div class="version">v0.1.0 // ALPHA</div>
 
-                <!-- BlueBrown -->
-                <button class="frog-button" data-frog-type="BlueBrown" data-frog-name="Blue & Brown">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/BlueBrown/ToxicFrogBlueBrown_Idle.png')"></div>
-                    <span class="frog-name">Blue & Brown</span>
-                </button>
+<!-- Pixel rain -->
+<div class="pixel-rain" id="pixelRain"></div>
 
-                <!-- GreenBlue -->
-                <button class="frog-button" data-frog-type="GreenBlue" data-frog-name="Green & Blue">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/GreenBlue/ToxicFrogGreenBlue_Idle.png')"></div>
-                    <span class="frog-name">Green & Blue</span>
-                </button>
+<div class="wrapper">
 
-                <!-- GreenBrown -->
-                <button class="frog-button" data-frog-type="GreenBrown" data-frog-name="Green & Brown">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/GreenBrown/ToxicFrogGreenBrown_Idle.png')"></div>
-                    <span class="frog-name">Green & Brown</span>
-                </button>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">🐸 TOXIC<span>FROG</span></div>
+        <div class="tagline">// multiplayer pond simulator //</div>
+    </header>
 
-                <!-- PurpleBlue -->
-                <button class="frog-button" data-frog-type="PurpleBlue" data-frog-name="Purple & Blue">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/PurpleBlue/ToxicFrogPurpleBlue_Idle.png')"></div>
-                    <span class="frog-name">Purple & Blue</span>
-                </button>
-
-                <!-- PurpleWhite -->
-                <button class="frog-button" data-frog-type="PurpleWhite" data-frog-name="Purple & White">
-                    <div class="frog-image" style="background-image: url('../ToxicFrog/PurpleWhite/ToxicFrogPurpleWhite_Idle.png')"></div>
-                    <span class="frog-name">Purple & White</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Sekcja informacyjna -->
-        <div class="info-section" id="infoSection" style="display: none;">
-            <h3>Twój profil</h3>
-            <p>Nickname: <strong id="selectedNickname"></strong></p>
-            <p>Wybrana żabka: <strong id="selectedFrog"></strong></p>
-            <p>Twoje ID: <strong id="playerID"></strong></p>
-            <button id="startGameBtn" class="start-button">Zacznij grę!</button>
+    <!-- NICK -->
+    <div class="panel">
+        <div class="panel-title">[ 01 ] ENTER CALLSIGN</div>
+        <div class="nick-row">
+            <label class="nick-label" for="nicknameInput">NICK</label>
+            <input
+                type="text"
+                id="nicknameInput"
+                placeholder="ANON_FROG"
+                maxlength="20"
+                autocomplete="off"
+                spellcheck="false"
+            >
         </div>
     </div>
 
-    <script src="mainpage.js"></script>
+    <!-- FROG SELECT -->
+    <div class="panel">
+        <div class="panel-title">[ 02 ] SELECT FROG UNIT</div>
+        <div class="frog-grid">
+
+            <button class="frog-card" data-frog-type="BlueBlue" data-frog-name="Blue &amp; Blue">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/BlueBlue/ToxicFrogBlueBlue_Idle.png" alt="Blue Blue frog">
+                </div>
+                <span class="frog-label">BLUE<br>&amp; BLUE</span>
+            </button>
+
+            <button class="frog-card" data-frog-type="BlueBrown" data-frog-name="Blue &amp; Brown">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/BlueBrown/ToxicFrogBlueBrown_Idle.png" alt="Blue Brown frog">
+                </div>
+                <span class="frog-label">BLUE<br>&amp; BROWN</span>
+            </button>
+
+            <button class="frog-card" data-frog-type="GreenBlue" data-frog-name="Green &amp; Blue">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/GreenBlue/ToxicFrogGreenBlue_Idle.png" alt="Green Blue frog">
+                </div>
+                <span class="frog-label">GREEN<br>&amp; BLUE</span>
+            </button>
+
+            <button class="frog-card" data-frog-type="GreenBrown" data-frog-name="Green &amp; Brown">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/GreenBrown/ToxicFrogGreenBrown_Idle.png" alt="Green Brown frog">
+                </div>
+                <span class="frog-label">GREEN<br>&amp; BROWN</span>
+            </button>
+
+            <button class="frog-card" data-frog-type="PurpleBlue" data-frog-name="Purple &amp; Blue">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/PurpleBlue/ToxicFrogPurpleBlue_Idle.png" alt="Purple Blue frog">
+                </div>
+                <span class="frog-label">PURPLE<br>&amp; BLUE</span>
+            </button>
+
+            <button class="frog-card" data-frog-type="PurpleWhite" data-frog-name="Purple &amp; White">
+                <div class="frog-img-wrap">
+                    <img src="ToxicFrog/PurpleWhite/ToxicFrogPurpleWhite_Idle.png" alt="Purple White frog">
+                </div>
+                <span class="frog-label">PURPLE<br>&amp; WHITE</span>
+            </button>
+
+        </div>
+    </div>
+
+    <!-- PROFILE PANEL -->
+    <div class="profile-panel" id="infoSection">
+        <div class="panel-title">[ 03 ] UNIT PROFILE</div>
+        <div class="profile-row">
+            <span class="profile-key">CALLSIGN</span>
+            <span class="profile-val gold" id="selectedNickname">—</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-key">FROG UNIT</span>
+            <span class="profile-val" id="selectedFrog">—</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-key">UID</span>
+            <span class="profile-val profile-id" id="playerID">—</span>
+        </div>
+        <button class="start-btn" id="startGameBtn">▶ ENTER POND</button>
+    </div>
+
+</div>
+
+<script src="mainpage.js"></script>
+<script>
+    // Pixel rain
+    const rain = document.getElementById('pixelRain');
+    const colors = ['#39d98a','#30a46c','#f0c040','#a371f7'];
+    for (let i = 0; i < 30; i++) {
+        const px = document.createElement('span');
+        px.style.left = Math.random() * 100 + 'vw';
+        px.style.top = Math.random() * 100 + 'vh';
+        px.style.animationDuration = (6 + Math.random() * 12) + 's';
+        px.style.animationDelay = (Math.random() * 10) + 's';
+        px.style.background = colors[Math.floor(Math.random() * colors.length)];
+        px.style.width = px.style.height = (Math.random() > 0.7 ? '6px' : '3px');
+        px.style.opacity = String(0.1 + Math.random() * 0.4);
+        rain.appendChild(px);
+    }
+</script>
+
 </body>
 </html>

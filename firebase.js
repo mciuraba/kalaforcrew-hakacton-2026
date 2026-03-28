@@ -18,9 +18,9 @@ const FB = (() => {
         return seed;
     }
 
-    async function join(name, spriteIndex) {
+    async function join(name, spriteIndex, frogType) {
         myId = `frog_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        const data = { name, spriteIndex, x: 5, y: 5, message: '', messageTime: 0 };
+        const data = { name, spriteIndex, frogType, x: 5, y: 5, message: '', messageTime: 0 };
 
         const ref = db.ref(`frogs/${myId}`);
         ref.set(data);

@@ -22,6 +22,17 @@ window.addEventListener('resize', resizeCanvas);
 
 let board = null;
 
+const frogSprites = {};
+
+function getFrogSprite(frogType) {
+  if (!frogSprites[frogType]) {
+    const img = new Image();
+    img.src = `ToxicFrog/${frogType}/ToxicFrog${frogType}_Idle.png`;
+    frogSprites[frogType] = img;
+  }
+  return frogSprites[frogType];
+}
+
 const player = { x: 4, y: 4, name: 'Frog', spriteIndex: 0 };
 let allFrogs = {};
 let myId = null;
@@ -94,12 +105,6 @@ function drawFrog(frog, isMe, nearby, camX, camY) {
   const cx = px + ts / 2;
   const cy = py + ts / 2;
 
-  // Podświetlenie własnej żaby
-  if (isMe) {
-    ctx.fillStyle = 'rgba(255,255,100,0.35)';
-    ctx.fillRect(px - 4, py - 4, ts + 8, ts + 8);
-  }
-
   // Cień
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
@@ -107,10 +112,9 @@ function drawFrog(frog, isMe, nearby, camX, camY) {
   ctx.fill();
 
   // Żaba — większa (ts * 0.85 zamiast 0.6)
-  ctx.font = `${Math.floor(ts * 0.85)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('🐸', cx, cy);
+    const sprite = getFrogSprite(frog.frogType || 'GreenBlue');
+    const spriteSize = ts * 1.5;
+    ctx.drawImage(sprite, cx - spriteSize / 2, cy - spriteSize / 2, spriteSize, spriteSize);
 
   // Imię — czarny outline żeby było widać na każdym tle
   const nameSize = Math.max(11, Math.floor(ts * 0.22));
@@ -199,15 +203,15 @@ function gameLoop() {
 
 window.onload = async () => {
   const saved = localStorage.getItem('frogPlayer');
-  const playerInfo = saved ? JSON.parse(saved) : { name: 'Anon Frog', spriteIndex: 0 };
+  const playerInfo = saved ? JSON.parse(saved) : { name: 'Anon Frog', spriteIndex: 0, frogType: 'GreenBlue' };
 
   player.name = playerInfo.name;
   player.spriteIndex = playerInfo.spriteIndex;
-  // Spawn w rogu gdzie jest trawa, nie w środku stawu
+  player.frogType = playerInfo.frogType || 'GreenBlue';  // ← to musi być PRZED FB.join
   player.x = 2;
   player.y = 2;
 
-  const { id, seed } = await FB.join(player.name, player.spriteIndex);
+  const { id, seed } = await FB.join(player.name, player.spriteIndex, player.frogType);  // ← teraz player.frogType istnieje
   myId = id;
 
   board = new Board(GRID_SIZE, TILE_SIZE, seed);
