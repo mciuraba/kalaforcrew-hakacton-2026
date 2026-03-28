@@ -5,22 +5,37 @@ const db = firebase.database();
 const FB = (() => {
   let myId = null;
 
-  function join(name, spriteIndex) {
-    myId = `frog_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    const data = { name, spriteIndex, x: 5, y: 5, message: '', messageTime: 0 };
+    async function initMap() {
+        const snap = await db.ref('mapSeed').once('value');
+        let seed = snap.val();
+        
+        if (!seed) {
+            // Pierwszy gracz generuje seed
+            seed = Math.floor(Math.random() * 1000000);
+            await db.ref('mapSeed').set(seed);
+        }
+        
+        return seed;
+    }
 
-    const ref = db.ref(`frogs/${myId}`);
-    ref.set(data);
-    ref.onDisconnect().remove();
+    async function join(name, spriteIndex) {
+        myId = `frog_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        const data = { name, spriteIndex, x: 5, y: 5, message: '', messageTime: 0 };
 
-    db.ref('frogs').on('value', snapshot => {
-      const frogs = snapshot.val() || {};
-      updatePlayerCount(Object.keys(frogs).length);
-      if (typeof GAME !== 'undefined') GAME.renderFrogs(frogs, myId);
-    });
+        const ref = db.ref(`frogs/${myId}`);
+        ref.set(data);
+        ref.onDisconnect().remove();
 
-    return myId;
-  }
+        db.ref('frogs').on('value', snapshot => {
+            const frogs = snapshot.val() || {};
+            updatePlayerCount(Object.keys(frogs).length);
+            if (typeof GAME !== 'undefined') GAME.renderFrogs(frogs, myId);
+        });
+
+        // Pobierz seed i zwróć go
+        const seed = await initMap();
+        return { id: myId, seed };
+    }
 
   let lastUpdate = 0;
   function updatePosition(x, y) {

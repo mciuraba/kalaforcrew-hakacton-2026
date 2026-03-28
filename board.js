@@ -1,9 +1,10 @@
 // Generacja i rysowanie planszy — styl top-down z ścianką dirt
 class Board {
-    constructor(gridSize = 10, tileSize = 48) {
+    constructor(gridSize = 10, tileSize = 48, seed = 12345) {
         this.gridSize = gridSize;
         this.tileSize = tileSize;
         this.sideDepth = 10; // grubość ścianki dirt widocznej od frontu
+        this.seed = seed; // do generacji
 
         // Typy terenu
         this.GRASS = 'grass';
@@ -24,33 +25,33 @@ class Board {
         this.tiles = this.generateTerrain();
     }
 
+    _rand() {
+        this.seed = (this.seed * 1664525 + 1013904223) & 0xffffffff;
+        return (this.seed >>> 0) / 0xffffffff;
+    }
+
     generateTerrain() {
         const tiles = [];
         for (let y = 0; y < this.gridSize; y++) {
             const row = [];
             for (let x = 0; x < this.gridSize; x++) {
                 let type = this.GRASS;
-                const distFromEdge = Math.min(
-                    x,
-                    y,
-                    this.gridSize - 1 - x,
-                    this.gridSize - 1 - y
-                );
+                const distFromEdge = Math.min(x, y, this.gridSize-1-x, this.gridSize-1-y);
 
                 if (distFromEdge === 0) {
                     type = this.DIRT;
                 } else if (distFromEdge === 1) {
-                    const r = Math.random();
+                    const r = this._rand();  // ← zamiast Math.random()
                     if      (r < 0.65) type = this.WATER;
                     else if (r < 0.80) type = this.LILY;
                     else               type = this.GRASS;
                 } else if (distFromEdge <= 3) {
-                    const r = Math.random();
+                    const r = this._rand();
                     if      (r < 0.25) type = this.WATER;
                     else if (r < 0.32) type = this.LILY;
                     else               type = this.GRASS;
                 } else {
-                    type = Math.random() < 0.12 ? this.PLANT : this.GRASS;
+                    type = this._rand() < 0.12 ? this.PLANT : this.GRASS;
                 }
 
                 row.push({ type });
